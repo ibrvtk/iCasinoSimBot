@@ -1,0 +1,9 @@
+# URLs to used images
+src/media.py
+# Database
+src/database/main.db
+
+# System
+.venv/
+.env
+*__pycache__*

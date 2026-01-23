@@ -12,8 +12,8 @@ from media import img_language_switch
 from config import BOT
 from database import db_create_user, db_create_chat, db_read
 from app.data import text_emoji
-from app.utils import get_language, get_prefix, switch_language
-from app.keyboards import kb_start, kb_bot_added_in_chat
+from app.utils import check_ban, get_language, get_prefix, switch_language
+from app.keyboards import kb_start, kb_bot_added_in_chat, kb_my_chats
 from app.localization import phrases
 
 
@@ -24,6 +24,9 @@ RT = Router()
 @RT.message(Command('start'))
 async def cmd_start(message: Message) -> None:
     user_id = message.from_user.id
+
+    if message.chat.type != "private":
+        return
 
     user_is_in_db = await db_read(
         arr=user_id,
@@ -36,6 +39,9 @@ async def cmd_start(message: Message) -> None:
     else:
         await db_create_user(message.from_user)
         l = 'en'
+
+    if await check_ban(user_id, True) == True:
+        return await message.reply(phrases[f'youAreBanned_{l}'])
 
     # Output
     text = (
@@ -75,15 +81,39 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
 async def cmd_help(message: Message) -> None:
     pass
 
-@RT.message(F.text == 'settings')
-@RT.message(F.text == 'настройки')
+# @RT.message(F.text == 'settings')
+# @RT.message(F.text == 'настройки')
+# async def cmd_help(message: Message) -> None:
+#     chat = message.chat
+#     text = ""
+#     reply_markup = ""
+
+#     match chat.type:
+#         case "private":
+#             text = (
+
+#             )
+#             # reply_markup =
+
+
+@RT.message(F.text == 'my chats')
+@RT.message(F.text == 'мои чаты')
 async def cmd_help(message: Message) -> None:
-    pass
+    if message.chat.type != "private":
+        return
+
+    await message.answer(
+        text=message.from_user.full_name,
+        reply_markup=await kb_my_chats(message.from_user.id)
+    )
 
 
 @RT.message(Command('switch_language'))
 async def cmd_switch_language(message: Message) -> None:
     user_id = message.from_user.id
+
+    if await check_ban(user_id, True) == True:
+        return await message.reply(phrases['youAreBanned_en'])
 
     await switch_language(user_id, True)
     l = await get_language(user_id, True)

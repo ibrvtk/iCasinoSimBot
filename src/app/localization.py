@@ -6,6 +6,8 @@ phrases = {
     'languageCode_ru': "🇷🇺 Русский", 'languageCode_en': "🇬🇧 English",
     'language_ru': "язык", 'language_en': "language",
 
+    'youAreBanned_ru': "<b>Вы забанены в боте.</b>", 'youAreBanned_en': "<b>You are banned in the bot.</b>",
+
     'Im_ru': "Я", 'Im_en': "I'm",
 
     # Handlers

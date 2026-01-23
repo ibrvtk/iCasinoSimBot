@@ -4,7 +4,8 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder#, ReplyKeyboardBuilder
 
-#from database import db_read
+from config import BOT
+from database import db_read
 #from app.utils import get_language
 from app.localization import phrases
 
@@ -55,28 +56,29 @@ async def kb_bot_added_in_chat(l: str) -> InlineKeyboardMarkup:
     return inline_keyboard.as_markup()
 
 
-# async def kb_my_chats(user_id: int) -> InlineKeyboardMarkup:
-#     l = await db_get_language(user_id)
-#     raw_data = await db_read(
-#         arr=user_id,
-#         sql_from='user',
-#         sql_select='chats_id'
-#     )
+async def kb_my_chats(user_id: int) -> InlineKeyboardMarkup:
+    chats_id = await db_read(
+        arr=user_id,
+        sql_from='user',
+        sql_select='chats_id'
+    )
 
-#     if not raw_data[0]:
-#         return
+    if not chats_id[0]:
+        text_tuple = ('У Вас нет чатов с ботом')
+        return text_tuple
 
-#     inline_keyboard = InlineKeyboardBuilder()
-#     raw_chats_id = raw_data[0].split(',')
-#     for chat_id in raw_chats_id:
-#         try:
-#             chat = await BOT.get_chat(int(chat_id))
-#             text_chat = f"{chat.title} (@{chat.username})" if chat.username else chat.title
-#             inline_keyboard.add(InlineKeyboardButton(
-#                 text=text_chat,
-#                 callback_game=f'settings_{chat_id}'
-#             ))
-#         except:
-#             pass
+    chats_id = chats_id[0]
+    chats_id = tuple(chats_id.split(','))
 
-#     return inline_keyboard.adjust(2).as_markup()
+    inline_keyboard = InlineKeyboardBuilder()
+    for cid in chats_id:
+        try:
+            chat = await BOT.get_chat(int(cid))
+            text_chat = f"{chat.title} (@{chat.username})" if chat.username else chat.title
+            inline_keyboard.add(InlineKeyboardButton(
+                text=text_chat,
+                callback_data=f'settings_chat_{cid}'
+            ))
+        except:
+            pass
+    return inline_keyboard.adjust(2).as_markup()

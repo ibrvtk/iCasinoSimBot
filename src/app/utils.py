@@ -3,7 +3,7 @@ from database import db_create_user, db_read, db_update
 
 
 
-async def get_language(id: int, user_or_chat: bool) -> str:
+async def check_ban(id: int, user_or_chat: bool) -> bool:
     '''
     Reads the DB and returns string of language code param.
     
@@ -18,20 +18,62 @@ async def get_language(id: int, user_or_chat: bool) -> str:
         user_is_in_db=True
     )
 
-    if user_is_in_db:
-        language_code = await db_read(
-            arr=id,
-            sql_from=type_id,
-            sql_select='language_code'
-        )
+    if not user_is_in_db:
+        return False
+
+    is_banned = await db_read(
+        arr=id,
+        sql_from=type_id,
+        sql_select='is_banned'
+    )
+
+    is_banned = True if is_banned[0] == 1 else False
+
+    await update_username(id, user_or_chat)
+
+    return is_banned    
+
+
+async def get_language(id: int, user_or_chat: bool) -> str:
+    '''
+    Reads the DB and returns string of language code param.
+    
+    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
+    :type user_or_chat: bool
+    '''
+    if await check_ban(id, user_or_chat) == True:
+        return
+
+    type_id = 'user' if user_or_chat else 'chat'
+
+    user_is_in_db = await db_read(
+        arr=id,
+        sql_from=type_id,
+        user_is_in_db=True
+    )
+
+    if not user_is_in_db:
+        return 'en'
+
+    language_code = await db_read(
+        arr=id,
+        sql_from=type_id,
+        sql_select='language_code'
+    )
 
     language_code = language_code[0]
+
+    await update_username(id, user_or_chat)
+
     return language_code
 
-async def get_prefix(chat_id: int) -> str | None:
+async def get_prefix(chat_id: int) -> str:
     '''
     Reads the DB and returns string of chat prefix param.
     '''
+    if await check_ban(chat_id, False) == True:
+        return
+
     chat_prefix = await db_read(
         arr=chat_id,
         sql_from='chat',
@@ -43,7 +85,24 @@ async def get_prefix(chat_id: int) -> str | None:
 
     chat_prefix = chat_prefix[0]
 
+    await update_username(chat_id, False)
+
     return chat_prefix
+
+async def get_owner_id(chat_id: int) -> int:
+    '''
+    Returns the Telegram ID of owner of the chat.
+    '''
+    if await check_ban(chat_id, False) == True:
+        return
+
+    admins = await BOT.get_chat_administrators(chat_id)
+
+    for admin in admins:
+        if admin.status == 'creator':
+            owner_id = admin.user.id
+            await update_username(owner_id, True)
+            return owner_id
 
 
 async def update_username(id: int, user_or_chat: bool) -> None:
@@ -68,7 +127,6 @@ async def update_username(id: int, user_or_chat: bool) -> None:
             sql_set='username'
         )
 
-
 async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = False) -> str:
     '''
     :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
@@ -76,6 +134,9 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
     :param db_dont_write: If `True`, then just don't write switched language in DB
     :type db_dont_write: bool
     '''
+    if await check_ban(id, user_or_chat) == True:
+        return
+
     type_id = 'user' if user_or_chat else 'chat'
 
     is_in_db = await db_read(
@@ -110,16 +171,3 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
     await update_username(id, user_or_chat)
 
     return new_language_code
-
-
-async def get_owner_id(chat_id: int) -> int:
-    '''
-    Returns the Telegram ID of owner of the chat.
-    '''
-    admins = await BOT.get_chat_administrators(chat_id)
-
-    for admin in admins:
-        if admin.status == 'creator':
-            owner_id = admin.user.id
-            await update_username(owner_id, True)
-            return owner_id

@@ -1,6 +1,49 @@
 from config import BOT
-from database import db_create_user, db_read, db_update, db_get_language
+from database import db_create_user, db_read, db_update
 
+
+
+async def get_language(id: int, user_or_chat: bool) -> str:
+    '''
+    Reads the DB and returns string of language code param.
+    
+    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
+    :type user_or_chat: bool
+    '''
+    type_id = 'user' if user_or_chat else 'chat'
+
+    user_is_in_db = await db_read(
+        arr=id,
+        sql_from=type_id,
+        user_is_in_db=True
+    )
+
+    if user_is_in_db:
+        language_code = await db_read(
+            arr=id,
+            sql_from=type_id,
+            sql_select='language_code'
+        )
+
+    language_code = language_code[0]
+    return language_code
+
+async def get_prefix(chat_id: int) -> str | None:
+    '''
+    Reads the DB and returns string of chat prefix param.
+    '''
+    chat_prefix = await db_read(
+        arr=chat_id,
+        sql_from='chat',
+        sql_select='prefix'
+    )
+
+    if not chat_prefix[0]:
+        return ""
+
+    chat_prefix = chat_prefix[0]
+
+    return chat_prefix
 
 
 async def update_username(id: int, user_or_chat: bool) -> None:
@@ -12,7 +55,7 @@ async def update_username(id: int, user_or_chat: bool) -> None:
     type_id = 'user' if user_or_chat else 'chat'
 
     is_in_db = await db_read(
-        arr=target,
+        arr=id,
         sql_from=type_id,
         user_is_in_db=True
     )
@@ -20,7 +63,7 @@ async def update_username(id: int, user_or_chat: bool) -> None:
     if is_in_db:
         await db_update(
             arr_set=target.username,
-            arr_where=target,
+            arr_where=id,
             sql_update=type_id,
             sql_set='username'
         )
@@ -47,7 +90,7 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
             await db_create_user(user)
         return 'en'
 
-    old_language_code = await db_get_language(id, user_or_chat)
+    old_language_code = await get_language(id, user_or_chat)
     new_language_code = ''
 
     match old_language_code:

@@ -38,8 +38,12 @@ phrases = {
 
     'greeting1_ru': "Приветствую", 'greeting2_ru': "Всем здравия", 'greeting3_ru': "Как дела",
     'greeting1_en': "Greeting", 'greeting2_en': "Greetings everyone", 'greeting3_en': "How are you",
-    'typeHelp_ru': "Введите <code>помощь</code> для получения краткой справки.",
-    'typeHelp_en': "Enter <code>help</code> for a quick reference.",
+    'enterHelp_ru': "Для получения краткой справки введите",
+    'enterHelp_en': "For a quick reference, enter",
+
+    'help_ru': "помощь", 'help_en': "help",
+
+    'settings_ru': "настройки", 'settings_en': "settings",
 
     'languageSwitched_ru': "Язык переключён на", 'languageSwitched_en': "Language switched to",
 

@@ -181,33 +181,6 @@ async def db_get_all_users() -> list:
         print(f"error: database: db_get_all_users(): {e}")
         return []
 
-async def db_get_language(id: int, user_or_chat: bool) -> str:
-    '''
-    Reads the DB and returns string of language code param.
-    
-    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
-    :type user_or_chat: bool
-    '''
-    type_id = 'user' if user_or_chat else 'chat'
-
-    data = await db_read(
-        arr=id,
-        sql_from=type_id,
-        user_is_in_db=True
-    )
-
-    if data:
-        try:
-            async with connect(DB_DB) as db:
-                async with db.execute(f"SELECT language_code FROM {type_id} WHERE id = ?", (id,)) as cursor:
-                    raw_data = await cursor.fetchone()
-                    language_code = raw_data[0]
-                    return language_code
-
-        except Exception as e:
-            print(f"error: database: db_get_language(): {e}")
-            return None
-
 async def db_set_bonus(user_id: int, bonus_name: str) -> None:
     try:
         async with connect(DB_DB) as db:

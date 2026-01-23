@@ -4,7 +4,8 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder#, ReplyKeyboardBuilder
 
-#from database import db_read, db_get_language
+#from database import db_read
+#from app.utils import get_language
 from app.localization import phrases
 
 

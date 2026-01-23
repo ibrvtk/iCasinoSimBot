@@ -10,9 +10,9 @@ from asyncio import sleep
 
 from media import img_language_switch
 from config import BOT
-from database import db_create_user, db_create_chat, db_read, db_get_language
+from database import db_create_user, db_create_chat, db_read
 from app.data import text_emoji
-from app.utils import switch_language
+from app.utils import get_language, get_prefix, switch_language
 from app.keyboards import kb_start, kb_bot_added_in_chat
 from app.localization import phrases
 
@@ -22,7 +22,7 @@ RT = Router()
 
 
 @RT.message(Command('start'))
-async def cmd_start(message: Message):
+async def cmd_start(message: Message) -> None:
     user_id = message.from_user.id
 
     user_is_in_db = await db_read(
@@ -32,7 +32,7 @@ async def cmd_start(message: Message):
     )
 
     if user_is_in_db:
-        l = await db_get_language(user_id, True)
+        l = await get_language(user_id, True)
     else:
         await db_create_user(message.from_user)
         l = 'en'
@@ -51,16 +51,18 @@ async def cmd_start(message: Message):
 
 
 @RT.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=JOIN_TRANSITION))
-async def on_bot_added_in_chat(event: ChatMemberUpdated):
+async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
     chat = event.chat
+    chat_id = chat.id
     await db_create_chat(chat)
-    l = await db_get_language(chat.id, False)
+    l = await get_language(chat_id, False)
+    p = await get_prefix(chat_id)
 
     # Output
     text_greeting = choice((phrases[f'greeting1_{l}'], phrases[f'greeting2_{l}'], phrases[f'greeting3_{l}']))
     text = (
         f"{text_emoji} <b>{text_greeting}!</b> {phrases[f'Im_{l}']} — {phrases[f'botFullName_{l}']}.\n"
-        f"{phrases[f'typeHelp_{l}']}"
+        f"{phrases[f'enterHelp_{l}']} <code>{p}{phrases[f'help_{l}']}</code>."
     )
     await event.answer(
         text=text,
@@ -68,22 +70,23 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated):
     )
 
 
-# @RT.message(F.data == "мои чаты")
-# async def cmd_my_chats(message: Message):
-#     await message.answer(".", reply_markup=await kb_my_chats(message.from_user.id))
+@RT.message(F.text == 'help')
+@RT.message(F.text == 'помощь')
+async def cmd_help(message: Message) -> None:
+    pass
 
-
-@RT.chat_member(ChatMemberUpdatedFilter(member_status_changed=JOIN_TRANSITION))
-async def on_user_joined(event: ChatMemberUpdated):
-    await event.answer(f"Добро пожаловать, {event.new_chat_member.user.first_name}!")
+@RT.message(F.text == 'settings')
+@RT.message(F.text == 'настройки')
+async def cmd_help(message: Message) -> None:
+    pass
 
 
 @RT.message(Command('switch_language'))
-async def cmd_switch_language(message: Message):
+async def cmd_switch_language(message: Message) -> None:
     user_id = message.from_user.id
 
     await switch_language(user_id, True)
-    l = await db_get_language(user_id, True)
+    l = await get_language(user_id, True)
 
     # Output
     text = f"{phrases[f'languageSwitched_{l}']} <b>{phrases[f'languageCode_{l}']}</b>."
@@ -106,7 +109,7 @@ async def cmd_switch_language(message: Message):
     )
 
 @RT.message(Command('developer_info'))
-async def cmd_developer_info(message: Message):
-    l = await db_get_language(message.from_user.id, True)
+async def cmd_developer_info(message: Message) -> None:
+    l = await get_language(message.from_user.id, True)
 
     await message.answer(f"{phrases[f'mainDeveloper_{l}']}: @ibrvtk")

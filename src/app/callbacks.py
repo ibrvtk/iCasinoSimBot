@@ -4,9 +4,8 @@ from aiogram.types import CallbackQuery
 
 from random import choice
 
-from database import db_get_language
 from app.data import text_emoji
-from app.utils import switch_language
+from app.utils import get_language, get_prefix, switch_language
 from app.keyboards import kb_start, kb_bot_added_in_chat
 from app.localization import phrases
 
@@ -26,7 +25,7 @@ async def cb_language(callback: CallbackQuery) -> None:
         case 'start':
             user_id = callback.from_user.id
             await switch_language(user_id, True)
-            l = await db_get_language(user_id, True)
+            l = await get_language(user_id, True)
             text = (
                 f"{text_emoji} <b>{phrases[f'botFullName_{l}']}</b>\n\n"
                 f"{phrases[f'asAdminYouCanList_{l}']}\n\n"
@@ -37,11 +36,12 @@ async def cb_language(callback: CallbackQuery) -> None:
         case 'chat':
             chat_id = callback.message.chat.id
             await switch_language(chat_id, False)
-            l = await db_get_language(chat_id, False)
+            l = await get_language(chat_id, False)
+            p = await get_prefix(chat_id)
             text_greeting = choice((phrases[f'greeting1_{l}'], phrases[f'greeting2_{l}'], phrases[f'greeting3_{l}']))
             text = (
                 f"{text_emoji} <b>{text_greeting}!</b> {phrases[f'Im_{l}']} — {phrases[f'botFullName_{l}']}.\n"
-                f"{phrases[f'typeHelp_{l}']}"
+                f"{phrases[f'enterHelp_{l}']} <code>{p}{phrases[f'help_{l}']}</code>."
             )
             reply_markup = await kb_bot_added_in_chat(l)
 

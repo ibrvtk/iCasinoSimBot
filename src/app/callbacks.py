@@ -5,8 +5,9 @@ from aiogram.types import CallbackQuery
 from random import choice
 
 from database import db_get_language
+from app.data import text_emoji
 from app.utils import switch_language
-from app.keyboards import kb_add_to_chat
+from app.keyboards import kb_start, kb_bot_added_in_chat
 from app.localization import phrases
 
 
@@ -16,27 +17,36 @@ RT = Router()
 
 @RT.callback_query(F.data.startswith('language'))
 async def cb_language(callback: CallbackQuery) -> None:
-    user_id = callback.from_user.id
-
-    await switch_language(user_id)
-
     special_data = callback.data.split('_')[1]
-    l = await db_get_language(user_id)
-    emoji = ""
+    l = ''
     text = ""
+    reply_markup = ""
 
     match special_data:
-        case 'addToChat':
-            emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
+        case 'start':
+            user_id = callback.from_user.id
+            await switch_language(user_id, True)
+            l = await db_get_language(user_id, True)
             text = (
-                f"{emoji} <b>{phrases[f'botFullName_{l}']}</b>\n\n"
+                f"{text_emoji} <b>{phrases[f'botFullName_{l}']}</b>\n\n"
                 f"{phrases[f'asAdminYouCanList_{l}']}\n\n"
                 f"{phrases[f'asUserYouCanList_{l}']}\n\n"
                 f"🌠 <b>{phrases[f'justTryIt_{l}']}!</b>"
             )
+            reply_markup = await kb_start(l)
+        case 'chat':
+            chat_id = callback.message.chat.id
+            await switch_language(chat_id, False)
+            l = await db_get_language(chat_id, False)
+            text_greeting = choice((phrases[f'greeting1_{l}'], phrases[f'greeting2_{l}'], phrases[f'greeting3_{l}']))
+            text = (
+                f"{text_emoji} <b>{text_greeting}!</b> {phrases[f'Im_{l}']} — {phrases[f'botFullName_{l}']}.\n"
+                f"{phrases[f'typeHelp_{l}']}"
+            )
+            reply_markup = await kb_bot_added_in_chat(l)
 
-    # Output (answer)
+    # Output
     await callback.message.edit_text(
         text=text,
-        reply_markup=await kb_add_to_chat(l)
+        reply_markup=reply_markup
     )

@@ -16,7 +16,7 @@ DP = Dispatcher()
 async def main() -> None:
     print("(2/5) main() function received")
     await db_create_database()
-    print("(3/5) Database is got checked and scheduler is started")
+    print("(3/5) Database is got checked and scheduler is started") # there is no scheduler yet lol
     DP.include_router(router_handlers)
     DP.include_router(router_callbacks)
     print("(4/5) Routers are connected")
@@ -27,7 +27,7 @@ async def main() -> None:
         )
     print("(5/5) Done")
     #await BOT.delete_webhook(drop_pending_updates=True)
-    await DP.start_polling(BOT)
+    await DP.start_polling(BOT, allowed_updates=DP.resolve_used_update_types())
 
 
 if __name__ == "__main__":

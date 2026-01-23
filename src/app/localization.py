@@ -6,6 +6,8 @@ phrases = {
     'languageCode_ru': "🇷🇺 Русский", 'languageCode_en': "🇬🇧 English",
     'language_ru': "язык", 'language_en': "language",
 
+    'Im_ru': "Я", 'Im_en': "I'm",
+
     # Handlers
     'asAdminYouCanList_ru': (
         "<b>Как администратор вы можете:</b>\n<blockquote>"
@@ -33,6 +35,11 @@ phrases = {
     ),
     'justTryIt_ru': "Просто опробуйте, протестируйте", 'justTryIt_en': "Just try it",
     'switchTo_ru': "Переключиться на", 'switchTo_en': "Switch to",
+
+    'greeting1_ru': "Приветствую", 'greeting2_ru': "Всем здравия", 'greeting3_ru': "Как дела",
+    'greeting1_en': "Greeting", 'greeting2_en': "Greetings everyone", 'greeting3_en': "How are you",
+    'typeHelp_ru': "Введите <code>помощь</code> для получения краткой справки.",
+    'typeHelp_en': "Enter <code>help</code> for a quick reference.",
 
     'languageSwitched_ru': "Язык переключён на", 'languageSwitched_en': "Language switched to",
 

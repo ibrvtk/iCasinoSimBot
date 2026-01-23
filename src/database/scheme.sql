@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     "emoji" TEXT DEFAULT "👤",
     "registration_date" INTEGER, -- int(datetime.now().timestamp())
     "language_code" TEXT DEFAULT "en",
+    "chats_id" TEXT,
     "items_id" TEXT,
     "stage" INTEGER DEFAULT 0,
     "is_banned" INTEGER DEFAULT 0, -- -> boolean
@@ -20,7 +21,9 @@ CREATE TABLE IF NOT EXISTS "chat" (
     "id" INTEGER PRIMARY KEY,
     "username" TEXT,
     "emoji" TEXT DEFAULT "👤",
+    "owner_id" INTEGER,
     "prefix" TEXT DEFAULT "",
+    "language_code" TEXT DEFAULT "en",
     "cooldown" INTEGER DEFAULT 5,
     "is_banned" INTEGER DEFAULT 0, -- -> boolean
     "is_pro" INTEGER DEFAULT 0 -- -> boolean
@@ -37,9 +40,7 @@ CREATE TABLE IF NOT EXISTS "stat" (
     "wins" INTEGER DEFAULT 0,
     "loses" INTEGER DEFAULT 0,
     "balance_without_loses" INTEGER DEFAULT 0,
-    "last_play" INTEGER, -- int(datetime.now().timestamp())
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (chat_id) REFERENCES chat(id) ON DELETE CASCADE
+    "last_play" INTEGER -- int(datetime.now().timestamp())
 );
 
 CREATE TABLE IF NOT EXISTS "item" (
@@ -50,8 +51,7 @@ CREATE TABLE IF NOT EXISTS "item" (
     "quantity" INTEGER DEFAULT -1,
     "effect" TEXT,
     "is_keepable" INTEGER DEFAULT 1, -- -> boolean
-    "is_sendable" INTEGER DEFAULT 1, -- -> boolean
-    FOREIGN KEY (chat_id) REFERENCES chat(id) ON DELETE CASCADE
+    "is_sendable" INTEGER DEFAULT 1 -- -> boolean
 );
 
 CREATE TABLE IF NOT EXISTS "custom_role" (
@@ -59,8 +59,7 @@ CREATE TABLE IF NOT EXISTS "custom_role" (
     "chat_id" INTEGER,
     "name" TEXT,
     "emoji" TEXT DEFAULT "🔰",
-    "admin_level" INTEGER DEFAULT 0,
-    FOREIGN KEY (chat_id) REFERENCES chat(id) ON DELETE CASCADE
+    "admin_level" INTEGER DEFAULT 0
 );
 
 COMMIT;

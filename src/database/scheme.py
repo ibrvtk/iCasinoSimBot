@@ -3,7 +3,7 @@ from aiogram.types import User, Chat
 from datetime import datetime
 from aiosqlite import connect
 
-from config import DB_DB, DB_SQL
+from config import BOT, DB_DB, DB_SQL
 
 
 
@@ -29,21 +29,20 @@ async def db_create_user(user: User) -> None:
     try:
         async with connect(DB_DB) as db:
             await db.execute("INSERT OR IGNORE INTO user (id) VALUES (?)", (user_id,))
-
-            if user_username != None:
-                await db.execute("""
-                    UPDATE user 
-                    SET username = ?, registration_date = ?, language_code = ?
-                    WHERE id = ?
-                """, (user.username, datetime.now().timestamp(), user.language_code, user_id,))
-            else:
-                await db.execute("""
-                    UPDATE user 
-                    SET registration_date = ?, language_code = ?
-                    WHERE id = ?
-                """, (datetime.now().timestamp(), user.language_code, user_id,))
-
+            await db.execute("""
+                UPDATE user 
+                SET registration_date = ?, language_code = ?
+                WHERE id = ?
+            """, (datetime.now().timestamp(), user.language_code, user_id,))
             await db.commit()
+
+        if user_username != None:
+            await db_update(
+                arr_set=user_username,
+                arr_where=user_id,
+                sql_update='user',
+                sql_set='username'
+            )
 
     except Exception as e:
         print(f"error: database: db_create_user(): {e}")
@@ -51,22 +50,64 @@ async def db_create_user(user: User) -> None:
 async def db_create_chat(chat: Chat) -> None:
     chat_id = chat.id
     chat_username = chat.username
+    owner_id = 0
+
+    admins = await BOT.get_chat_administrators(chat_id)
+    for admin in admins:
+        if admin.status == 'creator':
+            owner_id = admin.user.id
 
     try:
         async with connect(DB_DB) as db:
             await db.execute("INSERT OR IGNORE INTO chat (id) VALUES (?)", (chat_id,))
-            if chat_username != None:
-                await db.execute("""
-                    UPDATE chat 
-                    SET username = ?
-                    WHERE id = ?
-                """, (chat_username, chat_id,))
             await db.commit()
+
+            await db_update(
+                arr_set=owner_id,
+                arr_where=chat_id,
+                sql_update='chat',
+                sql_set='owner_id'
+            )
+            if chat_username != None:
+                await db_update(
+                    arr_set=chat_username,
+                    arr_where=chat_id,
+                    sql_update='chat',
+                    sql_set='username'
+                )
+
+            owner_is_in_db = await db_read(
+                arr=owner_id,
+                sql_from='user',
+                user_is_in_db=True
+            )
+
+            if not owner_is_in_db:
+                owner = await BOT.get_chat(owner_id)
+                await db_create_user(owner)
+
+            owner_chats_id = await db_read(
+                arr=owner_id,
+                sql_from='user',
+                sql_select='chats_id'
+            )
+
+            if owner_chats_id == None:
+                owner_chats_id = f"{chat_id}"
+            else:
+                owner_chats_id = f"{owner_chats_id},{chat_id}"
+
+            await db_update(
+                arr_set=owner_chats_id,
+                arr_where=owner_id,
+                sql_update='user',
+                sql_set='chats_id'
+            )
 
     except Exception as e:
         print(f"error: database: db_create_chat(): {e}")
 
-async def db_read(arr, sql_from: str, sql_where: str = 'id', sql_select: str = '*', user_is_in_db: bool = False) -> list | bool | None:
+async def db_read(arr, sql_from: str, sql_where: str = 'id', sql_select: str = '*', user_is_in_db: bool = False) -> tuple | bool | None:
     '''
     `SELECT {sql_select} FROM {sql_from} WHERE {sql_where} = ?(arr)`
     
@@ -140,20 +181,25 @@ async def db_get_all_users() -> list:
         print(f"error: database: db_get_all_users(): {e}")
         return []
 
-async def db_get_language(user_id: int) -> str:
+async def db_get_language(id: int, user_or_chat: bool) -> str:
     '''
-    Reads the DB and returns string of **user** language code param
+    Reads the DB and returns string of language code param.
+    
+    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
+    :type user_or_chat: bool
     '''
-    user_data = await db_read(
-        arr=user_id,
-        sql_from='user',
+    type_id = 'user' if user_or_chat else 'chat'
+
+    data = await db_read(
+        arr=id,
+        sql_from=type_id,
         user_is_in_db=True
     )
 
-    if user_data:
+    if data:
         try:
             async with connect(DB_DB) as db:
-                async with db.execute("SELECT language_code FROM user WHERE id = ?", (user_id,)) as cursor:
+                async with db.execute(f"SELECT language_code FROM {type_id} WHERE id = ?", (id,)) as cursor:
                     raw_data = await cursor.fetchone()
                     language_code = raw_data[0]
                     return language_code

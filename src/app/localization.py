@@ -8,6 +8,8 @@ phrases = {
 
     'youAreBanned_ru': "<b>Вы забанены в боте.</b>", 'youAreBanned_en': "<b>You are banned in the bot.</b>",
 
+    'on_ru': "вкл.", 'on_en': "on",
+    'off_ru': "откл.", 'off_en': "off",
     'Im_ru': "Я", 'Im_en': "I'm",
 
     # Handlers
@@ -53,4 +55,8 @@ phrases = {
 
     # Keyboards
     'addToChat_ru': "Добавить в свой чат", 'addToChat_en': "Add to your chat",
+    'chatEmoji_ru': "Эмодзи чата", 'chatEmoji_en': "Emoji of the chat",
+    'cooldown_ru': "Кулдаун", 'cooldown_en': "Cooldown", 'sec_ru': "сек.", 'sec_en': "sec",
+    'isBannedFalse_ru': "Временно выключить бота", 'isBannedFalse_en': "Temporarily disable the bot",
+    'isBannedTrue_ru': "Включить бота обратно", 'isBannedTrue_en': "Turn the bot back on"
 }

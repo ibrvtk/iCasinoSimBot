@@ -1,3 +1,5 @@
+from aiogram.types import Message
+
 from config import BOT
 from database import db_create_user, db_read, db_update
 
@@ -28,10 +30,24 @@ async def check_ban(id: int, user_or_chat: bool) -> bool:
     )
 
     is_banned = True if is_banned[0] == 1 else False
+    return is_banned
 
-    await update_username(id, user_or_chat)
+async def check_prefix_and_args(message: Message, command: str, args_needed: int = 1) -> bool | None:
+    if args_needed < 1:
+        raise ValueError("src/app/utils.py: check_prefix_and_args(): args_needed can not be smaller than zero")
 
-    return is_banned    
+    message_text = message.text
+    args = message_text.split(' ')
+
+    if len(args) > args_needed:
+        return False
+
+    p = await get_prefix(message.chat.id)
+
+    if args[0] != f"{p}{command}":
+        return False
+
+    return True
 
 
 async def get_language(id: int, user_or_chat: bool) -> str:
@@ -41,9 +57,6 @@ async def get_language(id: int, user_or_chat: bool) -> str:
     :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
     :type user_or_chat: bool
     '''
-    if await check_ban(id, user_or_chat) == True:
-        return
-
     type_id = 'user' if user_or_chat else 'chat'
 
     user_is_in_db = await db_read(
@@ -62,18 +75,12 @@ async def get_language(id: int, user_or_chat: bool) -> str:
     )
 
     language_code = language_code[0]
-
-    await update_username(id, user_or_chat)
-
     return language_code
 
 async def get_prefix(chat_id: int) -> str:
     '''
     Reads the DB and returns string of chat prefix param.
     '''
-    if await check_ban(chat_id, False) == True:
-        return
-
     chat_prefix = await db_read(
         arr=chat_id,
         sql_from='chat',
@@ -84,18 +91,12 @@ async def get_prefix(chat_id: int) -> str:
         return ""
 
     chat_prefix = chat_prefix[0]
-
-    await update_username(chat_id, False)
-
     return chat_prefix
 
 async def get_owner_id(chat_id: int) -> int:
     '''
     Returns the Telegram ID of owner of the chat.
     '''
-    if await check_ban(chat_id, False) == True:
-        return
-
     admins = await BOT.get_chat_administrators(chat_id)
 
     for admin in admins:
@@ -134,9 +135,6 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
     :param db_dont_write: If `True`, then just don't write switched language in DB
     :type db_dont_write: bool
     '''
-    if await check_ban(id, user_or_chat) == True:
-        return
-
     type_id = 'user' if user_or_chat else 'chat'
 
     is_in_db = await db_read(
@@ -167,7 +165,5 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
             sql_update=type_id,
             sql_set='language_code'
         )
-
-    await update_username(id, user_or_chat)
 
     return new_language_code

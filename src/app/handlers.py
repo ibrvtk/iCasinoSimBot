@@ -12,8 +12,8 @@ from media import img_language_switch
 from config import BOT
 from database import db_create_user, db_create_chat, db_read
 from app.data import text_emoji
-from app.utils import check_ban, get_language, get_prefix, switch_language
-from app.keyboards import kb_start, kb_bot_added_in_chat, kb_my_chats
+from app.utils import check_ban, check_prefix_and_args, get_language, get_prefix, switch_language
+from app.keyboards import kb_start, kb_bot_added_in_chat, kb_settings_chat, kb_my_chats
 from app.localization import phrases
 
 
@@ -81,24 +81,42 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
 async def cmd_help(message: Message) -> None:
     pass
 
-# @RT.message(F.text == 'settings')
-# @RT.message(F.text == 'настройки')
-# async def cmd_help(message: Message) -> None:
-#     chat = message.chat
-#     text = ""
-#     reply_markup = ""
+@RT.message(F.text.contains('settings'))
+@RT.message(F.text.contains('настройки'))
+async def cmd_settings(message: Message) -> None:
+    user_id = message.from_user.id
 
-#     match chat.type:
-#         case "private":
-#             text = (
+    if await check_ban(user_id, True):
+        return await message.reply(phrases['youAreBanned_en'])
 
-#             )
-#             # reply_markup =
+    chat = message.chat
+    reply_markup = ""
+
+    match chat.type:
+        case 'private':
+            return # Temporary
+            #l = await get_language(user_id, True)
+            #reply_markup = None
+        case 'group' | 'supergroup':
+            chat_id = chat.id
+            l = await get_language(chat_id, False)
+            reply_markup = await kb_settings_chat(l, chat_id)
+
+            if not await check_prefix_and_args(message, phrases[f'settings_{l}']):
+                return
+
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>"
+
+    # Output
+    await message.reply(
+        text=text,
+        reply_markup=reply_markup
+    )
 
 
 @RT.message(F.text == 'my chats')
 @RT.message(F.text == 'мои чаты')
-async def cmd_help(message: Message) -> None:
+async def cmd_my_chats(message: Message) -> None:
     if message.chat.type != "private":
         return
 
@@ -112,7 +130,7 @@ async def cmd_help(message: Message) -> None:
 async def cmd_switch_language(message: Message) -> None:
     user_id = message.from_user.id
 
-    if await check_ban(user_id, True) == True:
+    if await check_ban(user_id, True):
         return await message.reply(phrases['youAreBanned_en'])
 
     await switch_language(user_id, True)

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 CREATE TABLE IF NOT EXISTS "chat" (
     "id" INTEGER PRIMARY KEY,
     "username" TEXT,
-    "emoji" TEXT DEFAULT "👤",
+    "emoji" TEXT DEFAULT "👥",
     "owner_id" INTEGER,
     "prefix" TEXT DEFAULT "",
     "language_code" TEXT DEFAULT "en",

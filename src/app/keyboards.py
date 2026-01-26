@@ -56,6 +56,36 @@ async def kb_bot_added_in_chat(l: str) -> InlineKeyboardMarkup:
     return inline_keyboard.as_markup()
 
 
+async def kb_settings_chat(l: str, chat_id: int) -> InlineKeyboardMarkup:
+    chat_data = await db_read(
+        arr=chat_id,
+        sql_from='chat',
+        sql_select='emoji, cooldown, is_banned'
+    )
+
+    emoji = chat_data[0]
+    cooldown = chat_data[1]
+    is_banned_text = phrases[f'isBannedFalse_{l}'] if chat_data[2] == 0 else phrases[f'isBannedTrue_{l}']
+
+    inline_keyboard = InlineKeyboardBuilder()
+
+    await button_switch_language(inline_keyboard, l, 'settingsChat')
+    inline_keyboard.add(InlineKeyboardButton(
+        text=f"{phrases[f'chatEmoji_{l}']}: {emoji}",
+        callback_data=f'settings_chat_emoji_{chat_id}'
+    ))
+    inline_keyboard.add(InlineKeyboardButton(
+        text=f"{phrases[f'cooldown_{l}']}: {cooldown} {phrases[f'sec_{l}']}",
+        callback_data=f'settings_chat_cooldown_{chat_id}'
+    ))
+    inline_keyboard.add(InlineKeyboardButton(
+        text=f"{is_banned_text}",
+        callback_data=f'settings_chat_ban_{chat_id}'
+    ))
+
+    return inline_keyboard.adjust(1).as_markup()
+
+
 async def kb_my_chats(user_id: int) -> InlineKeyboardMarkup:
     chats_id = await db_read(
         arr=user_id,

@@ -91,6 +91,7 @@ async def db_create_chat(chat: Chat) -> None:
                 sql_from='user',
                 sql_select='chats_id'
             )
+            owner_chats_id[0]
 
             if owner_chats_id == None:
                 owner_chats_id = f"{chat_id}"

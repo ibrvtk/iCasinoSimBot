@@ -5,14 +5,11 @@ from database import db_create_user, db_read, db_update
 
 
 
-async def check_ban(id: int, user_or_chat: bool) -> bool:
+async def check_ban(id: int) -> bool:
     '''
     Reads the DB and returns string of language code param.
-    
-    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
-    :type user_or_chat: bool
     '''
-    type_id = 'user' if user_or_chat else 'chat'
+    type_id = 'chat' if str(id).startswith('-100') else 'user'
 
     user_is_in_db = await db_read(
         arr=id,
@@ -50,14 +47,11 @@ async def check_prefix_and_args(message: Message, command: str, args_needed: int
     return True
 
 
-async def get_language(id: int, user_or_chat: bool) -> str:
+async def get_language(id: int) -> str:
     '''
     Reads the DB and returns string of language code param.
-    
-    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
-    :type user_or_chat: bool
     '''
-    type_id = 'user' if user_or_chat else 'chat'
+    type_id = 'chat' if str(id).startswith('-100') else 'user'
 
     user_is_in_db = await db_read(
         arr=id,
@@ -102,17 +96,13 @@ async def get_owner_id(chat_id: int) -> int:
     for admin in admins:
         if admin.status == 'creator':
             owner_id = admin.user.id
-            await update_username(owner_id, True)
+            await update_username(owner_id)
             return owner_id
 
 
-async def update_username(id: int, user_or_chat: bool) -> None:
-    '''
-    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
-    :type user_or_chat: bool
-    '''
+async def update_username(id: int) -> None:
     target = await BOT.get_chat(id)
-    type_id = 'user' if user_or_chat else 'chat'
+    type_id = 'chat' if str(id).startswith('-100') else 'user'
 
     is_in_db = await db_read(
         arr=id,
@@ -128,14 +118,12 @@ async def update_username(id: int, user_or_chat: bool) -> None:
             sql_set='username'
         )
 
-async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = False) -> str:
+async def switch_language(id: int, db_dont_write: bool = False) -> str:
     '''
-    :param user_or_chat: If `True` then reads the `user` table. Else reads the `chat` table
-    :type user_or_chat: bool
     :param db_dont_write: If `True`, then just don't write switched language in DB
     :type db_dont_write: bool
     '''
-    type_id = 'user' if user_or_chat else 'chat'
+    type_id = 'chat' if str(id).startswith('-100') else 'user'
 
     is_in_db = await db_read(
         arr=id,
@@ -149,7 +137,7 @@ async def switch_language(id: int, user_or_chat: bool, db_dont_write: bool = Fal
             await db_create_user(user)
         return 'en'
 
-    old_language_code = await get_language(id, user_or_chat)
+    old_language_code = await get_language(id)
     new_language_code = ''
 
     match old_language_code:

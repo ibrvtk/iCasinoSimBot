@@ -25,7 +25,7 @@ async def cb_language(callback: CallbackQuery) -> None:
         case 'start':
             user_id = callback.from_user.id
             await switch_language(user_id, True)
-            l = await get_language(user_id, True)
+            l = await get_language(user_id)
             text = (
                 f"{text_emoji} <b>{phrases[f'botFullName_{l}']}</b>\n\n"
                 f"{phrases[f'asAdminYouCanList_{l}']}\n\n"
@@ -35,8 +35,8 @@ async def cb_language(callback: CallbackQuery) -> None:
             reply_markup = await kb_start(l)
         case 'chat':
             chat_id = callback.message.chat.id
-            await switch_language(chat_id, False)
-            l = await get_language(chat_id, False)
+            await switch_language(chat_id)
+            l = await get_language(chat_id)
             p = await get_prefix(chat_id)
             text_greeting = choice((phrases[f'greeting1_{l}'], phrases[f'greeting2_{l}'], phrases[f'greeting3_{l}']))
             text = (

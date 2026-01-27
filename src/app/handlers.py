@@ -35,12 +35,12 @@ async def cmd_start(message: Message) -> None:
     )
 
     if user_is_in_db:
-        l = await get_language(user_id, True)
+        l = await get_language(user_id)
     else:
         await db_create_user(message.from_user)
         l = 'en'
 
-    if await check_ban(user_id, True) == True:
+    if await check_ban(user_id) == True:
         return await message.reply(phrases[f'youAreBanned_{l}'])
 
     # Output
@@ -61,7 +61,7 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
     chat = event.chat
     chat_id = chat.id
     await db_create_chat(chat)
-    l = await get_language(chat_id, False)
+    l = await get_language(chat_id)
     p = await get_prefix(chat_id)
 
     # Output
@@ -86,7 +86,7 @@ async def cmd_help(message: Message) -> None:
 async def cmd_settings(message: Message) -> None:
     user_id = message.from_user.id
 
-    if await check_ban(user_id, True):
+    if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])
 
     chat = message.chat
@@ -95,11 +95,11 @@ async def cmd_settings(message: Message) -> None:
     match chat.type:
         case 'private':
             return # Temporary
-            #l = await get_language(user_id, True)
+            #l = await get_language(user_id)
             #reply_markup = None
         case 'group' | 'supergroup':
             chat_id = chat.id
-            l = await get_language(chat_id, False)
+            l = await get_language(chat_id)
             reply_markup = await kb_settings_chat(l, chat_id)
 
             if not await check_prefix_and_args(message, phrases[f'settings_{l}']):
@@ -130,11 +130,11 @@ async def cmd_my_chats(message: Message) -> None:
 async def cmd_switch_language(message: Message) -> None:
     user_id = message.from_user.id
 
-    if await check_ban(user_id, True):
+    if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])
 
-    await switch_language(user_id, True)
-    l = await get_language(user_id, True)
+    await switch_language(user_id)
+    l = await get_language(user_id)
 
     # Output
     text = f"{phrases[f'languageSwitched_{l}']} <b>{phrases[f'languageCode_{l}']}</b>."
@@ -158,6 +158,6 @@ async def cmd_switch_language(message: Message) -> None:
 
 @RT.message(Command('developer_info'))
 async def cmd_developer_info(message: Message) -> None:
-    l = await get_language(message.from_user.id, True)
+    l = await get_language(message.from_user.id)
 
     await message.answer(f"{phrases[f'mainDeveloper_{l}']}: @ibrvtk")

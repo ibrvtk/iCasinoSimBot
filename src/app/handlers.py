@@ -10,7 +10,7 @@ from asyncio import sleep
 
 from media import img_language_switch
 from config import BOT
-from database import db_create_user, db_create_chat, db_read
+from database import db_create_user, db_create_chat, db_read, db_create_user_in_chat
 from app.utils import check_ban, check_prefix_and_args, get_language, get_prefix, switch_language, delete_chat
 from app.keyboards import kb_start, kb_bot_added_in_chat, kb_settings_chat, kb_my_chats
 from app.localization import phrases
@@ -56,6 +56,10 @@ async def cmd_start(message: Message) -> None:
     )
 
 
+@RT.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
+async def on_join_transition(event: ChatMemberUpdated) -> None:
+    await db_create_user_in_chat(event.chat.id, event.from_user.id)
+
 @RT.my_chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
 async def on_my_join_transition(event: ChatMemberUpdated) -> None:
     chat = event.chat
@@ -78,7 +82,7 @@ async def on_my_join_transition(event: ChatMemberUpdated) -> None:
 
 @RT.my_chat_member(ChatMemberUpdatedFilter(LEAVE_TRANSITION))
 async def on_my_leave_transition(event: ChatMemberUpdated) -> None:
-    await delete_chat(event.chat.id)
+    await delete_chat(event.chat)
 
 
 @RT.message(F.text == 'help')
@@ -116,6 +120,72 @@ async def cmd_settings(message: Message) -> None:
     await message.reply(
         text=text,
         reply_markup=reply_markup
+    )
+
+
+@RT.message(F.text.contains('profile'))
+@RT.message(F.text.contains('профиль'))
+async def cmd_profile(message: Message) -> None:
+    user = message.from_user
+    user_id = user.id
+
+    if await check_ban(user_id):
+        return await message.reply(phrases['youAreBanned_en'])
+
+    chat_id = message.chat.id
+    l = await get_language(chat_id)
+
+    if not await check_prefix_and_args(message, phrases[f'profile_{l}'], 2):
+        return
+
+    user_user_data = await db_read(
+        arr=user_id,
+        sql_from='user',
+        sql_select='username, emoji, language_code, is_banned, is_pro'
+    )
+    bot = await BOT.get_me()
+    user_username = user_user_data[0] if user_user_data[0] else bot.username
+    user_emoji = user_user_data[1]
+    u_l = user_user_data[2]
+    user_is_banned = user_user_data[3]
+    user_is_pro = user_user_data[4]
+    user_is_banned =  "💀 " if user_is_banned == 1 else ""
+    user_is_pro = "🎖️ " if user_is_pro == 1 else ""
+
+    user_is_in_db = await db_read(
+        arr=user_id,
+        sql_from='stat',
+        user_is_in_db=True
+    )
+
+    if not user_is_in_db:
+        await db_create_user_in_chat(chat_id, user_id)
+
+    user_stat_data = await db_read(
+        arr=user_id,
+        sql_from='stat',
+        sql_where='user_id',
+        sql_select='admin_level, balance, bonus, wins, loses, balance_without_loses, last_play'
+    )
+    admin_level = user_stat_data[0]
+    balance = user_stat_data[1]
+    bonus = user_stat_data[2]
+    wins = user_stat_data[3]
+    loses = user_stat_data[4]
+    balance_without_loses = user_stat_data[5]
+    last_play = user_stat_data[6]
+
+    # Output
+    user_title = f"{user_emoji} {user_is_pro}{user_is_banned}<b><a href='https://t.me/{user_username}'>{user.full_name}</a></b> {phrases[f'emojiFlag_{u_l}']} ⦁ 💵{balance}"
+    text = (
+        f"{user_title}\n{admin_level} {phrases[f'adminLevel_{l}']}\n\n"
+        f"<b>{phrases[f'wins_{l}']}:</b> {wins} ⦁ <b>{phrases[f'loses_{l}']}:</b> {loses}\n"
+        f"<i>{phrases[f'balanceWithoutLoses_{l}']} 💵{balance_without_loses}</i>\n\n"
+        f"<b>{phrases[f'activeBonus_{l}']}:</b> {bonus} ⦁ <b>{phrases[f'lastPlay_{l}']}:</b> {last_play}"
+    )
+    await message.reply(
+        text=text,
+        disable_web_page_preview=True
     )
 
 

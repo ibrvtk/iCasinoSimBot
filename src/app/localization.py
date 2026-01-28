@@ -3,6 +3,7 @@
 phrases = {
     # Global
     'botFullName_ru': "I.T.K Симулятор Казино", 'botFullName_en': "I.T.K Casino Simulator", 
+    'emojiFlag_ru': "🇷🇺", 'emojiFlag_en': "🇬🇧",
     'languageCode_ru': "🇷🇺 Русский", 'languageCode_en': "🇬🇧 English",
     'language_ru': "язык", 'language_en': "language",
 
@@ -47,13 +48,19 @@ phrases = {
     'enterHelp_en': "For a quick reference, enter",
 
     'help_ru': "помощь", 'help_en': "help",
-
     'settings_ru': "настройки", 'settings_en': "settings",
     'ifYouKickBot_ru': "Если вы кикните бота из группы, то он безвозвратно забудет всю вашу статистику, настройки и так далее.",
     'ifYouKickBot_en': "If you kick a bot from a group, it will permanently forget all your stats, settings, and so on.",
 
-    'languageSwitched_ru': "Язык переключён на", 'languageSwitched_en': "Language switched to",
+    'profile_ru': "профиль", 'profile_en': "profile",
+    'adminLevel_ru': "уровень админки", 'adminLevel_en': "admin level",
+    'wins_ru': "Побед", 'wins_en': "Wins", 'loses_ru': "Проигрышей", 'loses_en': "Loses",
+    'balanceWithoutLoses_ru': "Если бы этот человек ничего не тратил и ни разу не проигрывал, то его баланс составлял бы",
+    'balanceWithoutLoses_en': "If this person hadn't spent anything and never lost, then his balance would be",
+    'activeBonus_ru': "Активный бонус", 'activeBonus_en': "Active bonus",
+    'lastPlay_ru': "Играл в последний раз", 'lastPlay_en': "Last play",
 
+    'languageSwitched_ru': "Язык переключён на", 'languageSwitched_en': "Language switched to",
     'mainDeveloper_ru': "Разработчик кода", 'mainDeveloper_en': "Code developer",
 
     # Callbacks

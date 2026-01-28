@@ -78,6 +78,9 @@ async def cb_settings(callback: CallbackQuery, state: FSMContext) -> None:
                 case 'emoji':
                     text = phrases[f'fsmChatSettingsEmoji_{l}']
                     await state.set_state(ChatSettings.emoji)
+                case 'prefix':
+                    text = phrases[f'fsmChatSettingsPrefix_{l}']
+                    await state.set_state(ChatSettings.prefix)
                 case 'cooldown':
                     text = phrases[f'fsmChatSettingsCooldown_{l}']
                     await state.set_state(ChatSettings.cooldown)
@@ -121,6 +124,44 @@ async def fsm_emoji(message: Message, state: FSMContext) -> None:
         arr_where=chat_id,
         sql_update='chat',
         sql_set='emoji'
+    )
+
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
+    reply_markup=await kb_settings_chat(chat_id)
+
+    # Output
+    await BOT.edit_message_text(
+        chat_id=chat_id,
+        message_id=data['bot_msg_id'],
+        text=text,
+        reply_markup=reply_markup
+    )
+
+    await state.clear()
+
+@RT.message(ChatSettings.prefix)
+async def fsm_emoji(message: Message, state: FSMContext) -> None:
+    chat_id = message.chat.id
+    message_text = message.text
+    data = await state.get_data()
+    text = ""
+    reply_markup = None
+    l = await get_language(chat_id)
+
+    if message_text.casefold() == "reset" or message_text.casefold() == "убрать":
+        message_text = ""
+
+    if len(message_text) > 1:
+        return await message.reply(f"<b>{phrases[f'fsmChatSettingsPrefixError_{l}']}</b> {phrases[f'tryAgain_{l}']}.")
+
+    if is_emoji(message_text):
+        return await message.reply(f"<b>{phrases[f'fsmChatSettingsPrefixEmojiError_{l}']}</b> {phrases[f'tryAgain_{l}']}.")
+
+    await db_update(
+        arr_set=message_text,
+        arr_where=chat_id,
+        sql_update='chat',
+        sql_set='prefix'
     )
 
     text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"

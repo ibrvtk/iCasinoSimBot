@@ -60,17 +60,22 @@ async def kb_settings_chat(chat_id: int) -> InlineKeyboardMarkup:
     chat_data = await db_read(
         arr=chat_id,
         sql_from='chat',
-        sql_select='emoji, language_code, cooldown, is_banned'
+        sql_select='emoji, prefix, language_code, cooldown, is_banned'
     )
 
+    l = chat_data[2]
     emoji = chat_data[0]
-    l = chat_data[1]
-    cooldown = chat_data[2]
-    is_banned_text = phrases[f'isBannedFalse_{l}'] if chat_data[3] == 0 else phrases[f'isBannedTrue_{l}']
+    prefix = phrases[f'prefixEmpty_{l}'] if chat_data[1] == "" else chat_data[1]
+    cooldown = chat_data[3]
+    is_banned_text = phrases[f'isBannedFalse_{l}'] if chat_data[4] == 0 else phrases[f'isBannedTrue_{l}']
 
     inline_keyboard = InlineKeyboardBuilder()
 
     await button_switch_language(inline_keyboard, l, 'settingsChat')
+    inline_keyboard.add(InlineKeyboardButton(
+        text=f"{phrases[f'prefix_{l}']}: {prefix}",
+        callback_data=f'settings_chat_prefix'
+    ))
     inline_keyboard.add(InlineKeyboardButton(
         text=f"{phrases[f'chatEmoji_{l}']}: {emoji}",
         callback_data=f'settings_chat_emoji'

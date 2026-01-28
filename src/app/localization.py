@@ -67,6 +67,12 @@ phrases = {
     'fsmChatSettingsEmoji_ru': "Отправьте в следующем сообщении эмодзи, который будет использоваться для обозначение этой группы.",
     'fsmChatSettingsEmoji_en': "Send in the next message the emoji that will be used to identify this group.",
     'fsmChatSettingsEmojiError_ru': "Отправьте один эмодзи!", 'fsmChatSettingsEmojiError_en': "Send one emoji!",
+    'fsmChatSettingsPrefix_ru': "Отправьте в следующем сообщении префикс для всех команд этого бота или введите <code>убрать</code>.",
+    'fsmChatSettingsPrefix_en': "Send the prefix for all commands of this bot in the following message or enter <code>reset</code>.",
+    'fsmChatSettingsPrefixError_ru': "Размер префикса должен быть не больше 1 символа!",
+    'fsmChatSettingsPrefixError_en': "The prefix size should be no more than 1 character!",
+    'fsmChatSettingsPrefixEmojiError_ru': "Префикс не может быть эмодзи!",
+    'fsmChatSettingsPrefixEmojiError_en': "The prefix cannot be an emoji!",
     'fsmChatSettingsCooldown_ru': "Отправьте в следующем сообщении время в секундах <i>(не более 60)</i>, раз в которое люди смогут вводить игровые команды.",
     'fsmChatSettingsCooldown_en': "In the following message, send the time in seconds <i>(no more than 60)</i> at which people can enter game commands.",
     'fsmChatSettingsCooldownValueError_ru': "Отправьте число!", 'fsmChatSettingsCooldownValueError_en': "Send a number!",
@@ -74,6 +80,8 @@ phrases = {
 
     # Keyboards
     'addToChat_ru': "Добавить в свой чат", 'addToChat_en': "Add to your chat",
+    'prefix_ru': "Префикс команд", 'prefix_en': "Commands prefix",
+    'prefixEmpty_ru': "нет префикса", 'prefixEmpty_en': "no prefix",
     'chatEmoji_ru': "Эмодзи чата", 'chatEmoji_en': "Emoji of the chat",
     'cooldown_ru': "Кулдаун", 'cooldown_en': "Cooldown", 'sec_ru': "сек.", 'sec_en': "sec",
     'isBannedFalse_ru': "Временно выключить бота", 'isBannedFalse_en': "Temporarily disable the bot",

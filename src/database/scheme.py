@@ -31,9 +31,9 @@ async def db_create_user(user: User) -> None:
             await db.execute("INSERT OR IGNORE INTO user (id) VALUES (?)", (user_id,))
             await db.execute("""
                 UPDATE user 
-                SET registration_date = ?, language_code = ?
+                SET registration_date = ?
                 WHERE id = ?
-            """, (datetime.now().timestamp(), user.language_code, user_id,))
+            """, (datetime.now().timestamp(), user_id,))
             await db.commit()
 
         if user_username != None:
@@ -91,7 +91,7 @@ async def db_create_chat(chat: Chat) -> None:
                 sql_from='user',
                 sql_select='chats_id'
             )
-            owner_chats_id[0]
+            owner_chats_id = owner_chats_id[0]
 
             if owner_chats_id == None:
                 owner_chats_id = f"{chat_id}"
@@ -167,7 +167,7 @@ async def db_update(arr_set, arr_where, sql_update: str, sql_set: str, sql_where
 
 async def db_delete(arr, sql_from: str, sql_where: str = 'id') -> None:
     async with connect(DB_DB) as db:
-        await db.execute(f"DELETE FROM {sql_from} WHERE {sql_where} = ?", (sql_from, sql_where, arr,))
+        await db.execute(f"DELETE FROM {sql_from} WHERE {sql_where} = ?", (arr,))
         await db.commit()
 
 

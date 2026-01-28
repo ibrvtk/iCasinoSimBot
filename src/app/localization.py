@@ -7,6 +7,7 @@ phrases = {
     'language_ru': "язык", 'language_en': "language",
 
     'youAreBanned_ru': "<b>Вы забанены в боте.</b>", 'youAreBanned_en': "<b>You are banned in the bot.</b>",
+    'tryAgain_ru': "Попробуйте снова", 'tryAgain_en': "Try again",
 
     'on_ru': "вкл.", 'on_en': "on",
     'off_ru': "откл.", 'off_en': "off",
@@ -48,10 +49,21 @@ phrases = {
     'help_ru': "помощь", 'help_en': "help",
 
     'settings_ru': "настройки", 'settings_en': "settings",
+    'ifYouKickBot_ru': "Если вы кикните бота из группы, то он безвозвратно забудет всю вашу статистику, настройки и так далее.",
+    'ifYouKickBot_en': "If you kick a bot from a group, it will permanently forget all your stats, settings, and so on.",
 
     'languageSwitched_ru': "Язык переключён на", 'languageSwitched_en': "Language switched to",
 
     'mainDeveloper_ru': "Разработчик кода", 'mainDeveloper_en': "Code developer",
+
+    # Callbacks
+    'fsmChatSettingsEmoji_ru': "Отправьте в следующем сообщении эмодзи, который будет использоваться для обозначение этой группы.",
+    'fsmChatSettingsEmoji_en': "Send in the next message the emoji that will be used to identify this group.",
+    'fsmChatSettingsEmojiError_ru': "Отправьте один эмодзи!", 'fsmChatSettingsEmojiError_en': "Send one emoji!",
+    'fsmChatSettingsCooldown_ru': "Отправьте в следующем сообщении время в секундах <i>(не более 60)</i>, раз в которое люди смогут вводить игровые команды.",
+    'fsmChatSettingsCooldown_en': "In the following message, send the time in seconds <i>(no more than 60)</i> at which people can enter game commands.",
+    'fsmChatSettingsCooldownValueError_ru': "Отправьте число!", 'fsmChatSettingsCooldownValueError_en': "Send a number!",
+    'fsmChatSettingsCooldownWrongRangeError_ru': "Отправьте число от 0 до 60!", 'fsmChatSettingsCooldownWrongRangeError_en': "Send a number from 0 to 60!",
 
     # Keyboards
     'addToChat_ru': "Добавить в свой чат", 'addToChat_en': "Add to your chat",

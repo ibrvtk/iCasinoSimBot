@@ -1,5 +1,7 @@
-from random import choice
+from aiogram.fsm.state import State, StatesGroup
 
 
 
-text_emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
+class ChatSettings(StatesGroup):
+    emoji = State()
+    cooldown = State()

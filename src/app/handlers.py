@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, ChatMemberUpdated#, LinkPreviewOptions
 from aiogram.filters import Command
 #from aiogram.fsm.context import FSMContext
-from aiogram.filters.chat_member_updated import ChatMemberUpdatedFilter, JOIN_TRANSITION
+from aiogram.filters.chat_member_updated import ChatMemberUpdatedFilter, JOIN_TRANSITION, LEAVE_TRANSITION
 
 from random import choice, randint
 from asyncio import sleep
@@ -11,8 +11,7 @@ from asyncio import sleep
 from media import img_language_switch
 from config import BOT
 from database import db_create_user, db_create_chat, db_read
-from app.data import text_emoji
-from app.utils import check_ban, check_prefix_and_args, get_language, get_prefix, switch_language
+from app.utils import check_ban, check_prefix_and_args, get_language, get_prefix, switch_language, delete_chat
 from app.keyboards import kb_start, kb_bot_added_in_chat, kb_settings_chat, kb_my_chats
 from app.localization import phrases
 
@@ -44,6 +43,7 @@ async def cmd_start(message: Message) -> None:
         return await message.reply(phrases[f'youAreBanned_{l}'])
 
     # Output
+    text_emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
     text = (
         f"{text_emoji} <b>{phrases[f'botFullName_{l}']}</b>\n\n"
         f"{phrases[f'asAdminYouCanList_{l}']}\n\n"
@@ -56,8 +56,8 @@ async def cmd_start(message: Message) -> None:
     )
 
 
-@RT.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=JOIN_TRANSITION))
-async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
+@RT.my_chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
+async def on_my_join_transition(event: ChatMemberUpdated) -> None:
     chat = event.chat
     chat_id = chat.id
     await db_create_chat(chat)
@@ -65,6 +65,7 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
     p = await get_prefix(chat_id)
 
     # Output
+    text_emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
     text_greeting = choice((phrases[f'greeting1_{l}'], phrases[f'greeting2_{l}'], phrases[f'greeting3_{l}']))
     text = (
         f"{text_emoji} <b>{text_greeting}!</b> {phrases[f'Im_{l}']} — {phrases[f'botFullName_{l}']}.\n"
@@ -74,6 +75,10 @@ async def on_bot_added_in_chat(event: ChatMemberUpdated) -> None:
         text=text,
         reply_markup=await kb_bot_added_in_chat(l)
     )
+
+@RT.my_chat_member(ChatMemberUpdatedFilter(LEAVE_TRANSITION))
+async def on_my_leave_transition(event: ChatMemberUpdated) -> None:
+    await delete_chat(event.chat.id)
 
 
 @RT.message(F.text == 'help')
@@ -100,12 +105,12 @@ async def cmd_settings(message: Message) -> None:
         case 'group' | 'supergroup':
             chat_id = chat.id
             l = await get_language(chat_id)
-            reply_markup = await kb_settings_chat(l, chat_id)
+            reply_markup = await kb_settings_chat(chat_id)
 
             if not await check_prefix_and_args(message, phrases[f'settings_{l}']):
                 return
 
-    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>"
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
 
     # Output
     await message.reply(

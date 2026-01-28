@@ -1,7 +1,9 @@
-from aiogram.types import Message
+from aiogram.types import Message, Chat
 
-from config import BOT
-from database import db_create_user, db_read, db_update
+from aiosqlite import connect
+
+from config import BOT, DB_DB
+from database import db_create_user, db_read, db_update, db_delete, db_get_all_users
 
 
 
@@ -155,3 +157,83 @@ async def switch_language(id: int, db_dont_write: bool = False) -> str:
         )
 
     return new_language_code
+
+
+async def delete_chat(chat: Chat) -> None:
+    chat_id = chat.id
+    owner_id = await db_read(
+        arr=chat_id,
+        sql_from='chat',
+        sql_select='owner_id'
+    )
+    owner_id = owner_id[0]
+
+    chat_items = []
+    async with connect(DB_DB) as db:
+        async with db.execute("SELECT id FROM item WHERE chat_id = ?", (chat_id,)) as cursor:
+            rows = await cursor.fetchall()
+            chat_items = [str(row[0]) for row in rows]
+
+    if owner_id:
+        owner_chats = await db_read(
+            arr=owner_id,
+            sql_from='user',
+            sql_select='chats_id'
+        )
+        owner_chats = owner_chats[0]
+
+        if owner_chats != None:
+            new_owner_chats = ','.join([
+                c for c in owner_chats.split(',')
+                if int(c) != chat_id
+            ])
+            await db_update(
+                new_owner_chats if new_owner_chats else None,
+                owner_id,
+                'user',
+                'chats_id'
+            )
+
+    if chat_items:
+        users_id = await db_get_all_users()
+        
+        for user_id in users_id:
+            user_items = await db_read(
+                arr=user_id,
+                sql_from='user',
+                sql_select='items_id'
+            )
+            user_items = user_items[0]
+
+            if user_items != None:
+                items_list = user_items.split(',')
+                new_items_list = [item for item in items_list if item not in chat_items]
+                
+                if len(new_items_list) != len(items_list):
+                    new_items_str = ','.join(new_items_list) if new_items_list else None
+                    await db_update(
+                        arr_set=new_items_str,
+                        arr_where=user_id,
+                        sql_update='user',
+                        sql_set='items_id'
+                    )
+
+    await db_delete(
+        arr=chat_id,
+        sql_from='chat'
+    )
+    await db_delete(
+        arr=chat_id,
+        sql_from='stat',
+        sql_where='chat_id'
+    )
+    await db_delete(
+        arr=chat_id,
+        sql_from='item',
+        sql_where='chat_id'
+    )
+    await db_delete(
+        arr=chat_id,
+        sql_from='custom_role',
+        sql_where='chat_id'
+    )

@@ -48,9 +48,12 @@ phrases = {
     'enterHelp_en': "For a quick reference, enter",
 
     'help_ru': "помощь", 'help_en': "help",
+    'briefReference_ru': "Краткая справка", 'briefReference_en': "A brief reference",
+    'helpText_ru': "показать это сообщение", 'helpText_en': "show this message",
     'settings_ru': "настройки", 'settings_en': "settings",
     'ifYouKickBot_ru': "Если вы кикните бота из группы, то он безвозвратно забудет всю вашу статистику, настройки и так далее.",
     'ifYouKickBot_en': "If you kick a bot from a group, it will permanently forget all your stats, settings, and so on.",
+    'settingsText_ru': "настройки бота в этом чате", 'settingsText_en': "bot settings in this chat",
 
     'profile_ru': "профиль", 'profile_en': "profile",
     'adminLevel_ru': "уровень админки", 'adminLevel_en': "admin level",

@@ -85,10 +85,28 @@ async def on_my_leave_transition(event: ChatMemberUpdated) -> None:
     await delete_chat(event.chat)
 
 
-@RT.message(F.text == 'help')
-@RT.message(F.text == 'помощь')
+@RT.message(F.text.contains('help'))
+@RT.message(F.text.contains('помощь'))
 async def cmd_help(message: Message) -> None:
-    pass
+    if message.chat.type == 'private':
+        return
+
+    chat_id = message.chat.id
+    l = await get_language(chat_id)
+
+    if not await check_prefix_and_args(message, phrases[f'help_{l}']):
+        return
+
+    p = await get_prefix(chat_id)
+
+    # Output
+    text_emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
+    text = (
+        f"{text_emoji} <b>{phrases[f'briefReference_{l}']}</b>\n\n"
+        f"⦁ <code>{p}{phrases[f'help_{l}']}</code> — {phrases[f'helpText_{l}']};\n"
+        f"⦁ <code>{p}{phrases[f'settings_{l}']}</code> — {phrases[f'settingsText_{l}']}."
+    )
+    await message.answer(text)
 
 @RT.message(F.text.contains('settings'))
 @RT.message(F.text.contains('настройки'))
@@ -205,6 +223,9 @@ async def cmd_my_chats(message: Message) -> None:
 async def cmd_switch_language(message: Message) -> None:
     user_id = message.from_user.id
 
+    if message.chat.type != 'private':
+        return
+
     if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])
 
@@ -233,6 +254,9 @@ async def cmd_switch_language(message: Message) -> None:
 
 @RT.message(Command('developer_info'))
 async def cmd_developer_info(message: Message) -> None:
+    if message.chat.type != 'private':
+        return
+
     l = await get_language(message.from_user.id)
 
     await message.answer(f"{phrases[f'mainDeveloper_{l}']}: @ibrvtk")

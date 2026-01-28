@@ -174,7 +174,12 @@ async def db_delete(arr, sql_from: str, sql_where: str = 'id') -> None:
 async def db_create_user_in_chat(chat_id: int, user_id: int) -> None:
     try:
         async with connect(DB_DB) as db:
-            await db.execute("INSERT OR IGNORE INTO stat (chat_id, user_id) VALUES (?, ?)", (chat_id, user_id,))
+            async with db.execute(f"SELECT id FROM stat WHERE chat_id = ? AND user_id = ?", (chat_id, user_id,)) as cursor:
+                user_data = await cursor.fetchone()
+
+            if not user_data:
+                await db.execute("INSERT INTO stat (chat_id, user_id) VALUES (?, ?)", (chat_id, user_id,))
+
             await db.commit()
 
     except Exception as e:

@@ -56,6 +56,7 @@ phrases = {
     'settingsText_ru': "настройки бота в этом чате", 'settingsText_en': "bot settings in this chat",
 
     'profile_ru': "профиль", 'profile_en': "profile",
+    'profileUserNotFoundError_ru': "Человек не найден!", 'profileUserNotFoundError_en': "User not found!",
     'adminLevel_ru': "уровень админки", 'adminLevel_en': "admin level",
     'wins_ru': "Побед", 'wins_en': "Wins", 'loses_ru': "Проигрышей", 'loses_en': "Loses",
     'balanceWithoutLoses_ru': "Если бы этот человек ничего не тратил и ни разу не проигрывал, то его баланс составлял бы",

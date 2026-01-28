@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, ChatMemberUpdated#, LinkPreviewOptions
 from aiogram.filters import Command
+from aiogram.exceptions import TelegramBadRequest
 #from aiogram.fsm.context import FSMContext
 from aiogram.filters.chat_member_updated import ChatMemberUpdatedFilter, JOIN_TRANSITION, LEAVE_TRANSITION
 
@@ -24,7 +25,7 @@ RT = Router()
 async def cmd_start(message: Message) -> None:
     user_id = message.from_user.id
 
-    if message.chat.type != "private":
+    if message.chat.type != 'private':
         return
 
     user_is_in_db = await db_read(
@@ -88,7 +89,7 @@ async def on_my_leave_transition(event: ChatMemberUpdated) -> None:
 @RT.message(F.text.contains('help'))
 @RT.message(F.text.contains('помощь'))
 async def cmd_help(message: Message) -> None:
-    if message.chat.type == 'private':
+    if message.chat.type not in ('group', 'supergroup'):
         return
 
     chat_id = message.chat.id
@@ -131,6 +132,8 @@ async def cmd_settings(message: Message) -> None:
 
             if not await check_prefix_and_args(message, phrases[f'settings_{l}']):
                 return
+        case _:
+            return
 
     text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
 
@@ -147,6 +150,9 @@ async def cmd_profile(message: Message) -> None:
     user = message.from_user
     user_id = user.id
 
+    if message.chat.type not in ('group', 'supergroup'):
+        return
+
     if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])
 
@@ -155,6 +161,27 @@ async def cmd_profile(message: Message) -> None:
 
     if not await check_prefix_and_args(message, phrases[f'profile_{l}'], 2):
         return
+
+    args = message.text.split(' ')
+
+    if len(args) == 2:
+        target_username = args[1]
+        if target_username.__contains__('@'):
+        # Replacing from_user values of user and user_id to target values
+            target_username = target_username.replace('@', '')
+            user_id = await db_read(
+                arr=target_username,
+                sql_from='user',
+                sql_where='username',
+                sql_select='id'
+            )
+
+            if not user_id:
+                return await message.reply(phrases[f'profileUserNotFoundError_{l}'])
+
+            user_id = user_id[0]
+            user = await BOT.get_chat(user_id)
+        else: return
 
     user_user_data = await db_read(
         arr=user_id,

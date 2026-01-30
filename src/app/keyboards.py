@@ -58,7 +58,7 @@ async def kb_bot_added_in_chat(l: str) -> InlineKeyboardMarkup:
 
 async def kb_settings_chat(chat_id: int) -> InlineKeyboardMarkup:
     chat_data = await db_read(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='chat',
         sql_select='emoji, prefix, language_code, cooldown, is_banned'
     )
@@ -94,7 +94,7 @@ async def kb_settings_chat(chat_id: int) -> InlineKeyboardMarkup:
 
 async def kb_my_chats(user_id: int) -> InlineKeyboardMarkup:
     chats_id = await db_read(
-        arr=user_id,
+        arg=user_id,
         sql_from='user',
         sql_select='chats_id'
     )

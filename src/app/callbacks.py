@@ -22,7 +22,7 @@ async def cb_language(callback: CallbackQuery) -> None:
     special_data = callback.data.split('_')[1]
     l = ''
     text = ""
-    reply_markup = ""
+    reply_markup = None
 
     match special_data:
         case 'start':
@@ -73,6 +73,9 @@ async def cb_settings(callback: CallbackQuery, state: FSMContext) -> None:
     l = await get_language(chat_id)
 
     match callback_data[1]:
+        case 'user':
+            # W.I.P.
+            return
         case 'chat':
             match callback_data[2]:
                 case 'emoji':
@@ -86,14 +89,14 @@ async def cb_settings(callback: CallbackQuery, state: FSMContext) -> None:
                     await state.set_state(ChatSettings.cooldown)
                 case 'ban':
                     is_banned = await db_read(
-                        arr=chat_id,
+                        arg=chat_id,
                         sql_from='chat',
                         sql_select='is_banned'
                     )
-                    is_banned = 1 if is_banned[0] == 0 else 0
+                    is_banned = 0 if is_banned == 1 else 1
                     await db_update(
-                        arr_set=is_banned,
-                        arr_where=chat_id,
+                        arg_set=is_banned,
+                        arg_where=chat_id,
                         sql_update='chat',
                         sql_set='is_banned'
                     )
@@ -120,24 +123,23 @@ async def fsm_emoji(message: Message, state: FSMContext) -> None:
         return await message.reply(f"<b>{phrases[f'fsmChatSettingsEmojiError_{l}']}</b> {phrases[f'tryAgain_{l}']}.")
 
     await db_update(
-        arr_set=message_text,
-        arr_where=chat_id,
+        arg_set=message_text,
+        arg_where=chat_id,
         sql_update='chat',
         sql_set='emoji'
     )
 
-    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
-    reply_markup=await kb_settings_chat(chat_id)
+    await state.clear()
 
     # Output
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
+    reply_markup=await kb_settings_chat(chat_id)
     await BOT.edit_message_text(
         chat_id=chat_id,
         message_id=data['bot_msg_id'],
         text=text,
         reply_markup=reply_markup
     )
-
-    await state.clear()
 
 @RT.message(ChatSettings.prefix)
 async def fsm_emoji(message: Message, state: FSMContext) -> None:
@@ -158,24 +160,23 @@ async def fsm_emoji(message: Message, state: FSMContext) -> None:
         return await message.reply(f"<b>{phrases[f'fsmChatSettingsPrefixEmojiError_{l}']}</b> {phrases[f'tryAgain_{l}']}.")
 
     await db_update(
-        arr_set=message_text,
-        arr_where=chat_id,
+        arg_set=message_text,
+        arg_where=chat_id,
         sql_update='chat',
         sql_set='prefix'
     )
 
-    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
-    reply_markup=await kb_settings_chat(chat_id)
+    await state.clear()
 
     # Output
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
+    reply_markup=await kb_settings_chat(chat_id)
     await BOT.edit_message_text(
         chat_id=chat_id,
         message_id=data['bot_msg_id'],
         text=text,
         reply_markup=reply_markup
     )
-
-    await state.clear()
 
 @RT.message(ChatSettings.cooldown)
 async def fsm_emoji(message: Message, state: FSMContext) -> None:
@@ -195,21 +196,20 @@ async def fsm_emoji(message: Message, state: FSMContext) -> None:
         return await message.reply(f"<b>{phrases[f'fsmChatSettingsCooldownWrongRangeError_{l}']}</b> {phrases[f'tryAgain_{l}']}.")
 
     await db_update(
-        arr_set=message_text,
-        arr_where=chat_id,
+        arg_set=message_text,
+        arg_where=chat_id,
         sql_update='chat',
         sql_set='cooldown'
     )
 
-    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
-    reply_markup=await kb_settings_chat(chat_id)
+    await state.clear()
 
     # Output
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
+    reply_markup=await kb_settings_chat(chat_id)
     await BOT.edit_message_text(
         chat_id=chat_id,
         message_id=data['bot_msg_id'],
         text=text,
         reply_markup=reply_markup
     )
-
-    await state.clear()

@@ -3,7 +3,7 @@ from aiogram.types import Message, Chat
 from aiosqlite import connect
 
 from config import BOT, DB_DB
-from database import db_create_user, db_read, db_update, db_delete, db_get_all_users
+from database import db_read, db_update, db_delete, db_read_users
 
 
 
@@ -11,24 +11,17 @@ async def check_ban(id: int) -> bool:
     '''
     Reads the DB and returns string of language code param.
     '''
-    type_id = 'chat' if str(id).startswith('-100') else 'user'
+    sql_from = 'chat' if str(id).startswith('-100') else 'user'
 
-    user_is_in_db = await db_read(
-        arr=id,
-        sql_from=type_id,
-        user_is_in_db=True
-    )
-
-    if not user_is_in_db:
+    if not await db_read(id, sql_from, check_exist=True):
         return False
 
     is_banned = await db_read(
-        arr=id,
-        sql_from=type_id,
+        arg=id,
+        sql_from=sql_from,
         sql_select='is_banned'
     )
 
-    is_banned = True if is_banned[0] == 1 else False
     return is_banned
 
 async def check_prefix_and_args(message: Message, command: str, args_needed: int = 1) -> bool | None:
@@ -53,24 +46,17 @@ async def get_language(id: int) -> str:
     '''
     Reads the DB and returns string of language code param.
     '''
-    type_id = 'chat' if str(id).startswith('-100') else 'user'
+    sql_from = 'chat' if str(id).startswith('-100') else 'user'
 
-    user_is_in_db = await db_read(
-        arr=id,
-        sql_from=type_id,
-        user_is_in_db=True
-    )
-
-    if not user_is_in_db:
+    if not await db_read(id, sql_from, check_exist=True):
         return 'en'
 
     language_code = await db_read(
-        arr=id,
-        sql_from=type_id,
+        arg=id,
+        sql_from=sql_from,
         sql_select='language_code'
     )
 
-    language_code = language_code[0]
     return language_code
 
 async def get_prefix(chat_id: int) -> str:
@@ -78,15 +64,14 @@ async def get_prefix(chat_id: int) -> str:
     Reads the DB and returns string of chat prefix param.
     '''
     chat_prefix = await db_read(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='chat',
         sql_select='prefix'
     )
 
-    if not chat_prefix[0]:
+    if not chat_prefix:
         return ""
 
-    chat_prefix = chat_prefix[0]
     return chat_prefix
 
 async def get_owner_id(chat_id: int) -> int:
@@ -94,50 +79,18 @@ async def get_owner_id(chat_id: int) -> int:
     Returns the Telegram ID of owner of the chat.
     '''
     admins = await BOT.get_chat_administrators(chat_id)
-
     for admin in admins:
         if admin.status == 'creator':
             owner_id = admin.user.id
-            await update_username(owner_id)
             return owner_id
 
 
-async def update_username(id: int) -> None:
-    target = await BOT.get_chat(id)
-    type_id = 'chat' if str(id).startswith('-100') else 'user'
-
-    is_in_db = await db_read(
-        arr=id,
-        sql_from=type_id,
-        user_is_in_db=True
-    )
-
-    if is_in_db:
-        await db_update(
-            arr_set=target.username,
-            arr_where=id,
-            sql_update=type_id,
-            sql_set='username'
-        )
-
-async def switch_language(id: int, db_dont_write: bool = False) -> str:
+async def switch_language(id: int) -> str:
     '''
     :param db_dont_write: If `True`, then just don't write switched language in DB
     :type db_dont_write: bool
     '''
-    type_id = 'chat' if str(id).startswith('-100') else 'user'
-
-    is_in_db = await db_read(
-        arr=id,
-        sql_from=type_id,
-        user_is_in_db=True
-    )
-
-    if not is_in_db:
-        if not db_dont_write and type_id != 'chat':
-            user = await BOT.get_chat(id)
-            await db_create_user(user)
-        return 'en'
+    sql_from = 'chat' if str(id).startswith('-100') else 'user'
 
     old_language_code = await get_language(id)
     new_language_code = ''
@@ -148,25 +101,24 @@ async def switch_language(id: int, db_dont_write: bool = False) -> str:
         case 'ru':
             new_language_code = 'en'
 
-    if not db_dont_write:
-        await db_update(
-            arr_set=new_language_code,
-            arr_where=id,
-            sql_update=type_id,
-            sql_set='language_code'
-        )
+    await db_update(
+        arg_set=new_language_code,
+        arg_where=id,
+        sql_update=sql_from,
+        sql_set='language_code'
+    )
 
     return new_language_code
 
 
 async def delete_chat(chat: Chat) -> None:
+    # W.I.P.
     chat_id = chat.id
     owner_id = await db_read(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='chat',
         sql_select='owner_id'
     )
-    owner_id = owner_id[0]
 
     chat_items = []
     async with connect(DB_DB) as db:
@@ -176,7 +128,7 @@ async def delete_chat(chat: Chat) -> None:
 
     if owner_id:
         owner_chats = await db_read(
-            arr=owner_id,
+            arg=owner_id,
             sql_from='user',
             sql_select='chats_id'
         )
@@ -195,11 +147,11 @@ async def delete_chat(chat: Chat) -> None:
             )
 
     if chat_items:
-        users_id = await db_get_all_users()
+        users_id = await db_read_users()
         
         for user_id in users_id:
             user_items = await db_read(
-                arr=user_id,
+                arg=user_id,
                 sql_from='user',
                 sql_select='items_id'
             )
@@ -212,28 +164,28 @@ async def delete_chat(chat: Chat) -> None:
                 if len(new_items_list) != len(items_list):
                     new_items_str = ','.join(new_items_list) if new_items_list else None
                     await db_update(
-                        arr_set=new_items_str,
-                        arr_where=user_id,
+                        arg_set=new_items_str,
+                        arg_where=user_id,
                         sql_update='user',
                         sql_set='items_id'
                     )
 
     await db_delete(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='chat'
     )
     await db_delete(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='stat',
         sql_where='chat_id'
     )
     await db_delete(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='item',
         sql_where='chat_id'
     )
     await db_delete(
-        arr=chat_id,
+        arg=chat_id,
         sql_from='custom_role',
         sql_where='chat_id'
     )

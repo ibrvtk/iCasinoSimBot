@@ -23,25 +23,19 @@ RT = Router()
 
 @RT.message(Command('start'))
 async def cmd_start(message: Message) -> None:
-    user_id = message.from_user.id
-
     if message.chat.type != 'private':
         return
 
-    user_is_in_db = await db_read(
-        arr=user_id,
-        sql_from='user',
-        user_is_in_db=True
-    )
+    user_id = message.from_user.id
 
-    if user_is_in_db:
+    if await check_ban(user_id):
+        return await message.reply(phrases[f'youAreBanned_{l}'])
+
+    if await db_read(user_id, 'user', check_exist=True):
         l = await get_language(user_id)
     else:
         await db_create_user(message.from_user)
         l = 'en'
-
-    if await check_ban(user_id) == True:
-        return await message.reply(phrases[f'youAreBanned_{l}'])
 
     # Output
     text_emoji = choice(('🟨', '🟡', '💛', '🟧', '🟠', '🧡', '🔶'))
@@ -118,13 +112,14 @@ async def cmd_settings(message: Message) -> None:
         return await message.reply(phrases['youAreBanned_en'])
 
     chat = message.chat
-    reply_markup = ""
+    reply_markup = None
 
     match chat.type:
         case 'private':
             return # Temporary
             #l = await get_language(user_id)
             #reply_markup = None
+
         case 'group' | 'supergroup':
             chat_id = chat.id
             l = await get_language(chat_id)
@@ -132,26 +127,25 @@ async def cmd_settings(message: Message) -> None:
 
             if not await check_prefix_and_args(message, phrases[f'settings_{l}']):
                 return
+
         case _:
             return
 
-    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
-
     # Output
+    text = f"⚙️ <b>{phrases[f'settings_{l}'].title()}</b>\n{phrases[f'ifYouKickBot_{l}']}"
     await message.reply(
         text=text,
         reply_markup=reply_markup
     )
 
-
 @RT.message(F.text.contains('profile'))
 @RT.message(F.text.contains('профиль'))
 async def cmd_profile(message: Message) -> None:
-    user = message.from_user
-    user_id = user.id
-
     if message.chat.type not in ('group', 'supergroup'):
         return
+
+    user = message.from_user
+    user_id = user.id
 
     if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])
@@ -169,26 +163,27 @@ async def cmd_profile(message: Message) -> None:
         if target_username.__contains__('@'):
         # Replacing from_user values of user and user_id to target values
             target_username = target_username.replace('@', '')
+
             user_id = await db_read(
-                arr=target_username,
+                arg=target_username,
                 sql_from='user',
                 sql_where='username',
                 sql_select='id'
             )
 
-            if not user_id:
+            if user_id is None:
                 return await message.reply(phrases[f'profileUserNotFoundError_{l}'])
 
-            user_id = user_id[0]
             user = await BOT.get_chat(user_id)
         else: return
 
+    bot = await BOT.get_me()
+
     user_user_data = await db_read(
-        arr=user_id,
+        arg=user_id,
         sql_from='user',
         sql_select='username, emoji, language_code, is_banned, is_pro'
     )
-    bot = await BOT.get_me()
     user_username = user_user_data[0] if user_user_data[0] else bot.username
     user_emoji = user_user_data[1]
     u_l = user_user_data[2]
@@ -197,17 +192,11 @@ async def cmd_profile(message: Message) -> None:
     user_is_banned =  "💀 " if user_is_banned == 1 else ""
     user_is_pro = "🎖️ " if user_is_pro == 1 else ""
 
-    user_is_in_db = await db_read(
-        arr=user_id,
-        sql_from='stat',
-        user_is_in_db=True
-    )
-
-    if not user_is_in_db:
+    if not await db_read(arg=chat_id, arg_and=user_id, sql_where='chat_id', sql_and='user_id', sql_from='stat', check_exist=True):
         await db_create_user_in_chat(chat_id, user_id)
 
     user_stat_data = await db_read(
-        arr=user_id,
+        arg=user_id,
         sql_from='stat',
         sql_where='user_id',
         sql_select='admin_level, balance, bonus, wins, loses, balance_without_loses, last_play'
@@ -237,6 +226,7 @@ async def cmd_profile(message: Message) -> None:
 @RT.message(F.text == 'my chats')
 @RT.message(F.text == 'мои чаты')
 async def cmd_my_chats(message: Message) -> None:
+    # W.I.P.
     if message.chat.type != "private":
         return
 
@@ -248,10 +238,10 @@ async def cmd_my_chats(message: Message) -> None:
 
 @RT.message(Command('switch_language'))
 async def cmd_switch_language(message: Message) -> None:
-    user_id = message.from_user.id
-
     if message.chat.type != 'private':
         return
+
+    user_id = message.from_user.id
 
     if await check_ban(user_id):
         return await message.reply(phrases['youAreBanned_en'])

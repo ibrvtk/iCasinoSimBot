@@ -26,7 +26,7 @@ async def main() -> None:
             text="Connection to Telegram has been successfully established."
         )
     print("(5/5) Done")
-    #await BOT.delete_webhook(drop_pending_updates=True)
+    await BOT.delete_webhook(drop_pending_updates=True)
     await DP.start_polling(BOT, allowed_updates=DP.resolve_used_update_types())
 
 

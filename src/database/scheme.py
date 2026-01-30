@@ -23,32 +23,43 @@ async def db_create_database() -> None:
 
 
 async def db_create_user(user: User) -> None:
+    '''Creates user in `user` table. Also updates `username` param _(even if the user already exists)_'''
     user_id = user.id
     user_username = user.username
 
-    try:
-        async with connect(DB_DB) as db:
-            await db.execute("INSERT OR IGNORE INTO user (id) VALUES (?)", (user_id,))
-            await db.execute("""
-                UPDATE user 
-                SET registration_date = ?
-                WHERE id = ?
-            """, (datetime.now().timestamp(), user_id,))
-            await db.commit()
+    if not await db_read(user_id, 'user', check_exist=True):
+        try:
+            async with connect(DB_DB) as db:
+                await db.execute("INSERT INTO user (id) VALUES (?)", (user_id,))
+                await db.execute("""
+                    UPDATE user 
+                    SET registration_date = ?
+                    WHERE id = ?
+                """, (datetime.now().timestamp(), user_id,))
+                await db.commit()
 
-        if user_username != None:
-            await db_update(
-                arr_set=user_username,
-                arr_where=user_id,
-                sql_update='user',
-                sql_set='username'
-            )
+        except Exception as e:
+            print(f"error: database: db_create_user(): {e}")
 
-    except Exception as e:
-        print(f"error: database: db_create_user(): {e}")
+    await db_update(
+        arg_set=user_username,
+        arg_where=user_id,
+        sql_update='user',
+        sql_set='username'
+    )
 
 async def db_create_chat(chat: Chat) -> None:
     chat_id = chat.id
+
+    if not await db_read(chat_id, 'chat', check_exist=True):
+        try:
+            async with connect(DB_DB) as db:
+                await db.execute("INSERT INTO chat (id) VALUES (?)", (chat_id,))
+                await db.commit()
+
+        except Exception as e:
+            print(f"error: database: db_create_chat(): {e}")
+
     chat_username = chat.username
     owner_id = 0
 
@@ -57,136 +68,129 @@ async def db_create_chat(chat: Chat) -> None:
         if admin.status == 'creator':
             owner_id = admin.user.id
 
+    # Updating chat owner_id and chat username
+    await db_update(
+        arg_set=owner_id,
+        arg_where=chat_id,
+        sql_update='chat',
+        sql_set='owner_id'
+    )
+
+    await db_update(
+        arg_set=chat_username,
+        arg_where=chat_id,
+        sql_update='chat',
+        sql_set='username'
+    )
+
+    # Updating owner chats_id. Creating him if not exists
+    # TODO: Remove chat_id from past owner's chats_id param, promoting new owner and demoting past
+    if not await db_read(owner_id, 'user', check_exist=True):
+        owner = await BOT.get_chat(owner_id)
+        await db_create_user(owner)
+
+    owner_chats_id = await db_read(
+        arg=owner_id,
+        sql_from='user',
+        sql_select='chats_id'
+    )
+
+    if owner_chats_id == None:
+        owner_chats_id = f"{chat_id}"
+    else:
+        owner_chats_id = f"{owner_chats_id},{chat_id}"
+
+    await db_update(
+        arg_set=owner_chats_id,
+        arg_where=owner_id,
+        sql_update='user',
+        sql_set='chats_id'
+    )
+
+async def db_read(arg, sql_from: str, sql_select: str = '*', sql_where: str = 'id', arg_and = None, sql_and: str = None, check_exist: bool = False) -> tuple | bool | None:
+    if sql_select != '*' and sql_where != 'id' and check_exist:
+        raise ValueError("src/database: db_read(): check_existence doesn't work with sql_select and sql_where")
+    if (arg_and is not None and sql_and is None) or (arg_and is None and sql_and is not None):
+        raise ValueError("src/database: db_read(): arg_and and sql_and must both be None or not None")
+
+    sql_and_params = ""
+    params = (arg,)
+
+    if arg_and is not None and sql_and is not None:
+        sql_and_params = f" AND {sql_and} = ?"
+        params = (arg, arg_and)
+
     try:
         async with connect(DB_DB) as db:
-            await db.execute("INSERT OR IGNORE INTO chat (id) VALUES (?)", (chat_id,))
-            await db.commit()
+            if not check_exist:
+                async with db.execute(f"SELECT {sql_select} FROM {sql_from} WHERE {sql_where} = ?{sql_and_params}", params) as cursor:
+                    data = await cursor.fetchone()
 
-            await db_update(
-                arr_set=owner_id,
-                arr_where=chat_id,
-                sql_update='chat',
-                sql_set='owner_id'
-            )
-            if chat_username != None:
-                await db_update(
-                    arr_set=chat_username,
-                    arr_where=chat_id,
-                    sql_update='chat',
-                    sql_set='username'
-                )
+                    if sql_select.__contains__(','):
+                        return data
 
-            owner_is_in_db = await db_read(
-                arr=owner_id,
-                sql_from='user',
-                user_is_in_db=True
-            )
-
-            if not owner_is_in_db:
-                owner = await BOT.get_chat(owner_id)
-                await db_create_user(owner)
-
-            owner_chats_id = await db_read(
-                arr=owner_id,
-                sql_from='user',
-                sql_select='chats_id'
-            )
-            owner_chats_id = owner_chats_id[0]
-
-            if owner_chats_id == None:
-                owner_chats_id = f"{chat_id}"
-            else:
-                owner_chats_id = f"{owner_chats_id},{chat_id}"
-
-            await db_update(
-                arr_set=owner_chats_id,
-                arr_where=owner_id,
-                sql_update='user',
-                sql_set='chats_id'
-            )
-
-    except Exception as e:
-        print(f"error: database: db_create_chat(): {e}")
-
-async def db_read(arr, sql_from: str, sql_where: str = 'id', sql_select: str = '*', user_is_in_db: bool = False) -> tuple | bool | None:
-    '''
-    `SELECT {sql_select} FROM {sql_from} WHERE {sql_where} = ?(arr)`
-    
-    :param arr: Required value of the `sql_where` parameter
-    :type arr: Any
-    :param sql_from: In which table the operation needs to be performed
-    :type sql_from: str
-    :param sql_where: Which parameter needs to be read. By default, `id` *(because `PRIMARY KEY`)*
-    :type sql_where: str
-    :param sql_select: What parameters should be returned? By default, `*` *(will return everything)*
-    :type sql_select: str
-    :param user_is_in_db: If `True`, it will return the fact that a **user or chat** is in the table *(`True` if he is there. Otherwise `False`)*
-    :type user_is_in_db: bool
-    '''
-    try:
-        async with connect(DB_DB) as db:
-            if not user_is_in_db:
-                async with db.execute(f"SELECT {sql_select} FROM {sql_from} WHERE {sql_where} = ?", (arr,)) as cursor:
-                    return await cursor.fetchone()
+                    return data[0] if data else None
 
             else:
-                async with db.execute(f"SELECT id FROM {sql_from} WHERE id = ?", (arr,)) as cursor:
-                    user_data = await cursor.fetchone()
+                async with db.execute(f"SELECT id FROM {sql_from} WHERE id = ?{sql_and_params}", params) as cursor:
+                    data = await cursor.fetchone()
 
-                    if not user_data:
+                    if not data:
                         return False
-                    else:
-                        return True
+
+                    return True
 
     except Exception as e:
         print(f"error: database: db_read(): {e}")
         return None
 
-async def db_update(arr_set, arr_where, sql_update: str, sql_set: str, sql_where: str = 'id') -> None:
-    '''
-    `UPDATE {sql_update} SET {sql_set} = ?(arr_set) WHERE {sql_where} = ?(arr_where)`
-    
-    :param arr_set: Required value of the `sql_set` parameter
-    :type arr_set: Any
-    :param arr_where: Required value of the `sql_where` parameter
-    :type arr_where: Any
-    :param sql_update: In which table the operation needs to be performed
-    :type sql_update: str
-    :param sql_set: Which parameter needs to be updated
-    :type sql_set: str
-    :param sql_where: update all those with `sql_where` equal to `arr_where`. By default, `id` *(because `PRIMARY KEY`)*
-    :type sql_where: str
-    '''
+async def db_update(arg_set, arg_where, sql_update: str, sql_set: str, sql_where: str = 'id', arg_and = None, sql_and: str = None) -> None:
+    if arg_and and not sql_and or not arg_and and sql_and:
+        raise ValueError("src/database: db_read(): arg_and and sql_and must both be None or not None")
+
+    sql_and_params = ""
+    params = (arg_set, arg_where)
+
+    if arg_and is not None and sql_and is not None:
+        sql_and_params = f" AND {sql_and} = ?"
+        params = (arg_set, arg_where, arg_and)
+
     try:
         async with connect(DB_DB) as db:
-            await db.execute(f"UPDATE {sql_update} SET {sql_set} = ? WHERE {sql_where} = ?", (arr_set, arr_where))
+            await db.execute(f"UPDATE {sql_update} SET {sql_set} = ? WHERE {sql_where} = ?{sql_and_params}", params)
             await db.commit()
 
     except Exception as e:
         print(f"error: database: db_update(): {e}")
 
-async def db_delete(arr, sql_from: str, sql_where: str = 'id') -> None:
+async def db_delete(arg, sql_from: str, sql_where: str = 'id', arg_and = None, sql_and = None) -> None:
+    if arg_and and not sql_and or not arg_and and sql_and:
+        raise ValueError("src/database: db_read(): arg_and and sql_and must both be None or not None")
+
+    sql_and_params = ""
+    params = (arg,)
+
+    if arg_and is not None and sql_and is not None:
+        sql_and_params = f" AND {sql_and} = ?"
+        params = (arg, arg_and)
+
     async with connect(DB_DB) as db:
-        await db.execute(f"DELETE FROM {sql_from} WHERE {sql_where} = ?", (arr,))
+        await db.execute(f"DELETE FROM {sql_from} WHERE {sql_where} = ?{sql_and_params}", params)
         await db.commit()
 
 
 async def db_create_user_in_chat(chat_id: int, user_id: int) -> None:
-    try:
-        async with connect(DB_DB) as db:
-            async with db.execute(f"SELECT id FROM stat WHERE chat_id = ? AND user_id = ?", (chat_id, user_id,)) as cursor:
-                user_data = await cursor.fetchone()
-
-            if not user_data:
+    if not await db_read(arg=chat_id, arg_and=user_id, sql_where='chat_id', sql_and='user_id', sql_from='stat', check_exist=True):
+        try:
+            async with connect(DB_DB) as db:
                 await db.execute("INSERT INTO stat (chat_id, user_id) VALUES (?, ?)", (chat_id, user_id,))
+                await db.commit()
 
-            await db.commit()
+        except Exception as e:
+            print(f"error: database: db_create_user_in_chat(): {e}")
+            return
 
-    except Exception as e:
-        print(f"error: database: db_create_user_in_chat(): {e}")
-        return
-
-async def db_get_all_users() -> list:
+async def db_read_users() -> list | None:
     try:
         async with connect(DB_DB) as db:
             async with db.execute("SELECT id FROM user",) as cursor:
@@ -195,16 +199,16 @@ async def db_get_all_users() -> list:
 
     except Exception as e:
         print(f"error: database: db_get_all_users(): {e}")
-        return []
+        return None
 
-async def db_set_bonus(user_id: int, bonus_name: str) -> None:
+async def db_set_bonus(chat_id: int, user_id: int, bonus_name: str) -> None:
     try:
         async with connect(DB_DB) as db:
             await db.execute("""
                 UPDATE stat 
                 SET bonus_name = ?
-                WHERE user_id = ?
-            """, (bonus_name, user_id,))
+                WHERE chat_id = ? AND user_id = ?
+            """, (bonus_name, chat_id, user_id,))
             await db.commit()
 
     except Exception as e:

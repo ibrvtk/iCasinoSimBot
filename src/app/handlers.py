@@ -157,12 +157,16 @@ async def cmd_profile(message: Message) -> None:
         return
 
     args = message.text.split(' ')
+    bot = await BOT.get_me()
 
-    if len(args) == 2:
+    if len(args) == 2 and message.reply_to_message is None:
         target_username = args[1]
         if target_username.__contains__('@'):
         # Replacing from_user values of user and user_id to target values
             target_username = target_username.replace('@', '')
+
+            if bot.username == target_username:
+                return
 
             user_id = await db_read(
                 arg=target_username,
@@ -175,9 +179,21 @@ async def cmd_profile(message: Message) -> None:
                 return await message.reply(phrases[f'profileUserNotFoundError_{l}'])
 
             user = await BOT.get_chat(user_id)
+            await db_create_user(user)
         else: return
 
-    bot = await BOT.get_me()
+    if len(args) == 1 and message.reply_to_message:
+        user_id = message.reply_to_message.from_user.id
+
+        if bot.id == user_id:
+            return
+
+        user = await BOT.get_chat(user_id)
+
+        if user is None:
+            return await message.reply(phrases[f'profileUserNotFoundError_{l}'])
+
+        await db_create_user(user)
 
     user_user_data = await db_read(
         arg=user_id,
